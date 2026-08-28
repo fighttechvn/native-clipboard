@@ -40,6 +40,12 @@ class PastedImageMessage {
 /// they close the sheet or swipe it away — so a paste is never sent by
 /// accident.
 ///
+/// [title], [previewLabel] and [captionHint] are the sheet's wording, and
+/// [sendButtonBackgroundColor] / [sendButtonForegroundColor] are what the send
+/// button is painted with. The colours fall back to the app's `colorScheme`,
+/// which is only right for an app whose scheme really describes its buttons —
+/// so an app that keeps its brand colour anywhere else passes it here.
+///
 /// ```dart
 /// ImagePasteRegion(
 ///   onImagePasted: (image) async {
@@ -58,6 +64,8 @@ Future<PastedImageMessage?> showClipboardImageSheet(
   String previewLabel = 'Message Preview',
   String captionHint = 'Add a caption…',
   String? initialCaption,
+  Color? sendButtonBackgroundColor,
+  Color? sendButtonForegroundColor,
   bool useRootNavigator = true,
 }) {
   return showModalBottomSheet<PastedImageMessage>(
@@ -73,6 +81,8 @@ Future<PastedImageMessage?> showClipboardImageSheet(
       previewLabel: previewLabel,
       captionHint: captionHint,
       initialCaption: initialCaption,
+      sendButtonBackgroundColor: sendButtonBackgroundColor,
+      sendButtonForegroundColor: sendButtonForegroundColor,
     ),
   );
 }
@@ -92,6 +102,17 @@ class ClipboardImageSheet extends StatefulWidget {
   final String captionHint;
   final String? initialCaption;
 
+  /// What the send button is painted with. Both fall back to the app's
+  /// `colorScheme` when left out, which is right for an app whose scheme
+  /// describes its buttons; an app that styles its buttons somewhere else —
+  /// a theme extension, a palette of its own — says so here rather than
+  /// having the sheet guess.
+  final Color? sendButtonBackgroundColor;
+
+  /// The colour of the arrow itself. Has to be readable on
+  /// [sendButtonBackgroundColor]: the two are set together or not at all.
+  final Color? sendButtonForegroundColor;
+
   const ClipboardImageSheet({
     super.key,
     required this.image,
@@ -99,6 +120,8 @@ class ClipboardImageSheet extends StatefulWidget {
     this.previewLabel = 'Message Preview',
     this.captionHint = 'Add a caption…',
     this.initialCaption,
+    this.sendButtonBackgroundColor,
+    this.sendButtonForegroundColor,
   });
 
   @override
@@ -129,6 +152,13 @@ class _ClipboardImageSheetState extends State<ClipboardImageSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
+
+    // Resolved here, once, so the button below reads as two colours rather
+    // than two conditions — and so the fallback is written down in one place.
+    final sendBackground =
+        widget.sendButtonBackgroundColor ?? theme.colorScheme.primary;
+    final sendForeground =
+        widget.sendButtonForegroundColor ?? theme.colorScheme.onPrimary;
 
     return Padding(
       // Lifts the caption field off the keyboard rather than being covered by
@@ -184,8 +214,8 @@ class _ClipboardImageSheetState extends State<ClipboardImageSheet> {
                     // on Material 2 would draw the send button as a white icon
                     // on the white sheet — there, but invisible.
                     style: IconButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
+                      backgroundColor: sendBackground,
+                      foregroundColor: sendForeground,
                       shape: const CircleBorder(),
                     ),
                   ),

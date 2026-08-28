@@ -61,9 +61,28 @@ ImagePasteRegion(
 ```
 
 It resolves to a `PastedImageMessage` — the image, and the caption trimmed —
-or to null when the user closes or swipes it away. `title`, `previewLabel` and
-`captionHint` take the app's own wording, and `ClipboardImageSheet` is public
-for putting the same thing somewhere other than a modal sheet.
+or to null when the user closes or swipes it away. `ClipboardImageSheet` is
+public for putting the same thing somewhere other than a modal sheet.
+
+Everything the sheet shows is a parameter, so a call site says what it wants
+instead of leaving it to be inferred:
+
+```dart
+showClipboardImageSheet(
+  context,
+  image: image,
+  title: 'Clipboard',
+  previewLabel: 'Message Preview',
+  captionHint: 'Add a caption…',
+  sendButtonBackgroundColor: brand.accent,
+  sendButtonForegroundColor: Colors.white,
+);
+```
+
+The send button falls back to `colorScheme.primary` / `onPrimary` when it is
+given no colours, which is right only for an app whose scheme really describes
+its buttons — an app that keeps its brand colour in a theme extension or a
+palette of its own passes it here.
 
 ## The clipboard directly
 

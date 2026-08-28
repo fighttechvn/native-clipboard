@@ -1,3 +1,11 @@
+## 0.1.1
+
+* `showClipboardImageSheet` and `ClipboardImageSheet` take
+  `sendButtonBackgroundColor` and `sendButtonForegroundColor`, so an app whose
+  brand colour is not in its `ColorScheme` states what the send button is
+  painted with instead of leaving the sheet to infer it. Left out, they fall
+  back to `colorScheme.primary` / `onPrimary` as before.
+
 ## 0.1.0
 
 First release.

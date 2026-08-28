@@ -16,7 +16,12 @@ void main() {
   );
 
   /// Opens the sheet over a page and hands back the result it will fill in.
-  Future<SheetResult> showSheet(WidgetTester tester, {ThemeData? theme}) async {
+  Future<SheetResult> showSheet(
+    WidgetTester tester, {
+    ThemeData? theme,
+    Color? sendBackground,
+    Color? sendForeground,
+  }) async {
     final result = SheetResult();
 
     await tester.pumpWidget(
@@ -29,6 +34,8 @@ void main() {
                 result.message = await showClipboardImageSheet(
                   context,
                   image: image,
+                  sendButtonBackgroundColor: sendBackground,
+                  sendButtonForegroundColor: sendForeground,
                 );
                 result.closed = true;
               },
@@ -107,6 +114,40 @@ void main() {
     expect(
       send.style?.foregroundColor?.resolve(pressed),
       isNot(const Color(0xFFFAAF3A)),
+    );
+
+    // And it still sends
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pumpAndSettle();
+
+    expect(result.message?.image, image);
+  });
+
+  testWidgets('the send button takes the colours it is given', (tester) async {
+    // Given an app whose brand colour is not in its colour scheme — the
+    // scheme here says one thing, the call site another.
+    final result = await showSheet(
+      tester,
+      theme: ThemeData(
+        useMaterial3: false,
+        colorScheme: const ColorScheme.light(primary: Color(0xFFFAAF3A)),
+      ),
+      sendBackground: const Color(0xFF0B57D0),
+      sendForeground: const Color(0xFFEEEEEE),
+    );
+
+    // Then the call site wins: nothing about the button is inferred.
+    final send = tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.send_rounded),
+    );
+    const pressed = <WidgetState>{};
+    expect(
+      send.style?.backgroundColor?.resolve(pressed),
+      const Color(0xFF0B57D0),
+    );
+    expect(
+      send.style?.foregroundColor?.resolve(pressed),
+      const Color(0xFFEEEEEE),
     );
 
     // And it still sends
