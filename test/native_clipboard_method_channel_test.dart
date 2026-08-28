@@ -90,14 +90,17 @@ void main() {
     expect(calls.single.method, 'clear');
   });
 
-  test('a platform with no plugin registered reports an empty clipboard', () async {
-    // No mock handler: this is the web, desktop, or a widget test — the call
-    // fails with MissingPluginException and the facade absorbs it.
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(platform.methodChannel, null);
+  test(
+    'a platform with no plugin registered reports an empty clipboard',
+    () async {
+      // No mock handler: this is the web, desktop, or a widget test — the call
+      // fails with MissingPluginException and the facade absorbs it.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(platform.methodChannel, null);
 
-    expect(await NativeClipboard.hasImage(), isFalse);
-    expect(await NativeClipboard.getImage(), isNull);
-    expect(await NativeClipboard.getImages(), isEmpty);
-  });
+      expect(await NativeClipboard.hasImage(), isFalse);
+      expect(await NativeClipboard.getImage(), isNull);
+      expect(await NativeClipboard.getImages(), isEmpty);
+    },
+  );
 }

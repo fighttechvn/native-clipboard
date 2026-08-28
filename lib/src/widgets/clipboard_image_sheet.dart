@@ -175,13 +175,19 @@ class _ClipboardImageSheetState extends State<ClipboardImageSheet> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  IconButton.filled(
+                  IconButton(
                     onPressed: _send,
                     icon: const Icon(Icons.send_rounded),
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).okButtonLabel,
-                    color: theme.colorScheme.onPrimary,
+                    tooltip: MaterialLocalizations.of(context).okButtonLabel,
+                    // Painted here rather than with `IconButton.filled`: the
+                    // filled variant is a Material 3 default, and an app still
+                    // on Material 2 would draw the send button as a white icon
+                    // on the white sheet — there, but invisible.
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      shape: const CircleBorder(),
+                    ),
                   ),
                 ],
               ),

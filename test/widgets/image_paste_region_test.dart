@@ -129,7 +129,8 @@ void main() {
     expect(
       clipboard.reads,
       0,
-      reason: 'a text paste must not read the image clipboard, which on iOS '
+      reason:
+          'a text paste must not read the image clipboard, which on iOS '
           'would raise the paste banner',
     );
   });

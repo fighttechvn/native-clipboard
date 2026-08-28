@@ -16,11 +16,12 @@ void main() {
   );
 
   /// Opens the sheet over a page and hands back the result it will fill in.
-  Future<SheetResult> showSheet(WidgetTester tester) async {
+  Future<SheetResult> showSheet(WidgetTester tester, {ThemeData? theme}) async {
     final result = SheetResult();
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: theme,
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(
@@ -80,6 +81,39 @@ void main() {
 
     expect(result.closed, isTrue);
     expect(result.message, isNull);
+  });
+
+  testWidgets('the send button is drawn on a Material 2 app', (tester) async {
+    // Given an app that has not moved to Material 3, where the filled icon
+    // button has no filled defaults to fall back on: the send button drew a
+    // white icon on the white sheet and looked like it was missing.
+    final result = await showSheet(
+      tester,
+      theme: ThemeData(
+        useMaterial3: false,
+        colorScheme: const ColorScheme.light(primary: Color(0xFFFAAF3A)),
+      ),
+    );
+
+    // Then it paints itself, and what it paints can be read against it
+    final send = tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.send_rounded),
+    );
+    const pressed = <WidgetState>{};
+    expect(
+      send.style?.backgroundColor?.resolve(pressed),
+      const Color(0xFFFAAF3A),
+    );
+    expect(
+      send.style?.foregroundColor?.resolve(pressed),
+      isNot(const Color(0xFFFAAF3A)),
+    );
+
+    // And it still sends
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pumpAndSettle();
+
+    expect(result.message?.image, image);
   });
 
   testWidgets('an image Flutter cannot decode still says what it is', (
