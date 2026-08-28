@@ -1,3 +1,19 @@
+## 0.2.0
+
+* **The selection menu is the platform's own again.** `contextMenuBuilder`
+  always drew a Flutter toolbar, so on iOS 16 and up a field showed one over
+  the system menu UIKit draws — two menus, each with its own *Copy*. It now
+  builds what the field would have built for itself: the system menu on iOS,
+  Flutter's toolbar everywhere else, and neither is touched at all when the
+  clipboard holds no image.
+* On the iOS system menu, an image on the clipboard replaces *Paste* with one
+  that pastes it. Without an image the platform's own *Paste* is left alone,
+  which is what pastes text without raising the *Allow Paste?* banner.
+* A *Paste* the plugin puts back now goes straight after *Cut* and *Copy*,
+  where every one of these menus puts it. It used to be appended last, which
+  on iOS is behind the overflow arrow — there, but invisible.
+* Needs Flutter 3.38 for `IOSSystemContextMenuItemCustom`.
+
 ## 0.1.1
 
 * `showClipboardImageSheet` and `ClipboardImageSheet` take

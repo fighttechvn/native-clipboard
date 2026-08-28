@@ -30,11 +30,17 @@ That is the whole integration. `Cmd+V` / `Ctrl+V` over the field now calls
 when it does not. The app decides what a pasted image means — usually a
 thumbnail above the composer, with a remove button.
 
-`contextMenuBuilder` is what puts *Paste* in the selection toolbar. It is
-separate because the toolbar builds its own buttons and never goes through
-`Actions`, and it is worth passing: with an image on the clipboard and no text,
-Flutter shows no paste button at all. The buttons stay the field's own, in the
-field's own order, with the platform's own look.
+`contextMenuBuilder` is what puts *Paste* in the selection menu. It is separate
+because the menu builds its own buttons and never goes through `Actions`, and
+it is worth passing: with an image on the clipboard and no text, Flutter shows
+no paste button at all.
+
+The menu stays the field's own throughout — the same menu, in the same order,
+drawn by whoever normally draws it. On iOS 16 and up that is the system menu
+UIKit draws, not a Flutter toolbar over the top of it; everywhere else it is
+Flutter's toolbar. A clipboard with no image on it is left completely alone,
+down to the platform's own *Paste*, which pastes text without raising the iOS
+paste banner.
 
 Set `enabled: false` to send every paste back down the plain-text path — for a
 composer that has run out of room for attachments — without taking the widget

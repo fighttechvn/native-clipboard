@@ -60,31 +60,55 @@ class ImagePasteRegion extends StatefulWidget {
     this.enabled = true,
   });
 
-  /// Hands a `TextField` a selection toolbar whose *Paste* also pastes images.
+  /// Hands a `TextField` a selection menu whose *Paste* also pastes images.
   ///
   /// Pass it as `contextMenuBuilder:` to any field inside an
-  /// [ImagePasteRegion]; outside one it builds the toolbar Flutter would have
+  /// [ImagePasteRegion]; outside one it builds the menu Flutter would have
   /// built, so it is safe on a field that is sometimes wrapped and sometimes
   /// not.
   ///
-  /// The buttons are the field's own, in the field's own order, with the
-  /// platform's own look — only what *Paste* does is changed, and a *Paste*
-  /// Flutter left out because the clipboard holds no text is put back when it
-  /// holds an image.
+  /// It is the field's own menu throughout — the same menu the field builds
+  /// for itself, in the same order and with the same look. On iOS 16 and up
+  /// that is the menu UIKit draws, which is what a `TextField` shows when it
+  /// is left alone; everywhere else it is Flutter's toolbar. Only *Paste* is
+  /// touched, and only when there is an image to paste: a *Paste* Flutter left
+  /// out because the clipboard holds no text is put back where the field would
+  /// have had it, and a clipboard holding an image pastes the image.
   static Widget contextMenuBuilder(
     BuildContext context,
     EditableTextState editableTextState,
   ) {
-    // The toolbar is built inside the Overlay, which sits above the region —
-    // so the region is looked up from the field, which sits below it.
+    // The menu is built inside the Overlay, which sits above the region — so
+    // the region is looked up from the field, which sits below it.
     final region = _ImagePasteScope.maybeOf(editableTextState.context);
-    final buttonItems = editableTextState.contextMenuButtonItems;
+
+    // What the field would have shown on its own. Both halves of this are the
+    // default `contextMenuBuilder` of `TextField`, kept in step with it: on
+    // iOS the system menu is not a Flutter widget at all, and drawing a
+    // Flutter toolbar in its place is a second menu over the platform's own.
+    if (SystemContextMenu.isSupportedByField(editableTextState)) {
+      final items = SystemContextMenu.getDefaultItems(editableTextState);
+
+      return SystemContextMenu.editableText(
+        editableTextState: editableTextState,
+        items: region == null
+            ? items
+            : region.withImagePasteItem(context, items, editableTextState),
+      );
+    }
+
+    if (region == null) {
+      return AdaptiveTextSelectionToolbar.editableText(
+        editableTextState: editableTextState,
+      );
+    }
 
     return AdaptiveTextSelectionToolbar.buttonItems(
       anchors: editableTextState.contextMenuAnchors,
-      buttonItems: region == null
-          ? buttonItems
-          : region.withImagePaste(buttonItems, editableTextState),
+      buttonItems: region.withImagePaste(
+        editableTextState.contextMenuButtonItems,
+        editableTextState,
+      ),
     );
   }
 
@@ -182,23 +206,91 @@ class _ImagePasteRegionState extends State<ImagePasteRegion> {
     }
 
     // Flutter offers *Paste* only when the clipboard holds text, so an image
-    // on its own leaves the field with no way to paste it. The button is put
-    // back where the field would have had it, in front of *Select all*.
+    // on its own leaves the field with no way to paste it.
     if (!_hasImage) {
       return items;
     }
 
-    final selectAll = items.indexWhere(
-      (e) => e.type == ContextMenuButtonType.selectAll,
+    items.insert(
+      _pasteSlot(
+        items.map(
+          (e) =>
+              e.type == ContextMenuButtonType.cut ||
+              e.type == ContextMenuButtonType.copy,
+        ),
+      ),
+      ContextMenuButtonItem(
+        type: ContextMenuButtonType.paste,
+        onPressed: onPasted,
+      ),
     );
-    final item = ContextMenuButtonItem(
-      type: ContextMenuButtonType.paste,
-      onPressed: onPasted,
-    );
-
-    items.insert(selectAll == -1 ? items.length : selectAll, item);
 
     return items;
+  }
+
+  /// The field's own *Paste* for the iOS system menu, which is not a Flutter
+  /// widget and cannot be given an arbitrary button.
+  ///
+  /// The system's own *Paste* is left exactly where it is unless there is an
+  /// image to paste: UIKit pastes text without ever raising the *Allow Paste?*
+  /// banner, and a Flutter button in its place could not. Only a clipboard
+  /// holding an image is worth the swap.
+  List<IOSSystemContextMenuItem> withImagePasteItem(
+    BuildContext context,
+    List<IOSSystemContextMenuItem> items,
+    EditableTextState editableTextState,
+  ) {
+    if (!_hasImage) {
+      return items;
+    }
+
+    final image = IOSSystemContextMenuItemCustom(
+      // The platform's own wording for the button it is standing in for.
+      title: WidgetsLocalizations.of(context).pasteButtonLabel,
+      onPressed: () {
+        editableTextState.hideToolbar();
+
+        pasteImage().then((handled) {
+          if (!handled) {
+            editableTextState.pasteText(SelectionChangedCause.toolbar);
+          }
+        });
+      },
+    );
+
+    final paste = items.indexWhere((e) => e is IOSSystemContextMenuItemPaste);
+    if (paste != -1) {
+      return [...items]..[paste] = image;
+    }
+
+    return [...items]..insert(
+      _pasteSlot(
+        items.map(
+          (e) =>
+              e is IOSSystemContextMenuItemCut ||
+              e is IOSSystemContextMenuItemCopy,
+        ),
+      ),
+      image,
+    );
+  }
+
+  /// Where *Paste* goes in a menu that has none.
+  ///
+  /// Straight after *Cut* and *Copy*, which is where every one of these menus
+  /// puts it — putting it last instead is what pushes it off the end of the
+  /// iOS toolbar and behind the overflow arrow, where it reads as missing.
+  int _pasteSlot(Iterable<bool> isCutOrCopy) {
+    var slot = 0;
+    var index = 0;
+    for (final match in isCutOrCopy) {
+      index++;
+      if (match) {
+        slot = index;
+      }
+    }
+
+    return slot;
   }
 
   @override

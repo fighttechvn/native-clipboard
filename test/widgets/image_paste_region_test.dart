@@ -189,6 +189,149 @@ void main() {
     expect(pasted, [image]);
   });
 
+  /// A composer on an iOS that draws the selection menu itself, which is what
+  /// every iPhone on iOS 16 and up does.
+  Future<EditableTextState> pumpSystemMenuComposer(
+    WidgetTester tester, {
+    required List<ClipboardImage> pasted,
+    String text = 'Hello',
+  }) async {
+    final controller = TextEditingController(text: text);
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        // Above the Navigator, so the Overlay the menu is built in sees it —
+        // which is where a real app's MediaQuery sits too.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(supportsShowingSystemContextMenu: true),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: ImagePasteRegion(
+            onImagePasted: pasted.add,
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              contextMenuBuilder: ImagePasteRegion.contextMenuBuilder,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: text.length,
+    );
+    await tester.pump();
+
+    final state = tester.state<EditableTextState>(find.byType(EditableText));
+    state.showToolbar();
+    await tester.pumpAndSettle();
+
+    return state;
+  }
+
+  List<IOSSystemContextMenuItem> systemMenuItems(WidgetTester tester) =>
+      tester.widget<SystemContextMenu>(find.byType(SystemContextMenu)).items;
+
+  testWidgets(
+    'on iOS the menu is the one the platform draws',
+    (tester) async {
+      setClipboardText(null);
+      clipboard.image = image;
+
+      final pasted = <ClipboardImage>[];
+      await pumpSystemMenuComposer(tester, pasted: pasted);
+
+      // A Flutter toolbar here is a second menu drawn over the platform's own,
+      // which is what the field showed before: two menus, two Copy buttons.
+      expect(find.byType(SystemContextMenu), findsOneWidget);
+      expect(find.byType(AdaptiveTextSelectionToolbar), findsNothing);
+      expect(find.text('Copy'), findsNothing);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
+  testWidgets(
+    'the system menu pastes an image from where Paste belongs',
+    (tester) async {
+      setClipboardText(null);
+      clipboard.image = image;
+
+      final pasted = <ClipboardImage>[];
+      await pumpSystemMenuComposer(tester, pasted: pasted);
+
+      final items = systemMenuItems(tester);
+      expect(
+        items.map((e) => e.runtimeType.toString()),
+        containsAllInOrder([
+          'IOSSystemContextMenuItemCut',
+          'IOSSystemContextMenuItemCopy',
+          'IOSSystemContextMenuItemCustom',
+        ]),
+        reason:
+            'Paste goes straight after Copy, where the platform puts it — last '
+            'is behind the overflow arrow, where it reads as missing',
+      );
+
+      final paste = items.whereType<IOSSystemContextMenuItemCustom>().single;
+      expect(paste.title, 'Paste');
+
+      paste.onPressed();
+      await tester.pumpAndSettle();
+
+      expect(pasted, [image]);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
+  testWidgets(
+    'a clipboard with no image leaves the system menu alone',
+    (tester) async {
+      setClipboardText('some text');
+      clipboard.image = null;
+
+      final pasted = <ClipboardImage>[];
+      final state = await pumpSystemMenuComposer(tester, pasted: pasted);
+
+      expect(
+        systemMenuItems(tester),
+        SystemContextMenu.getDefaultItems(state),
+        reason:
+            "nothing to add, so nothing is touched: the platform's own Paste "
+            'pastes text without raising the iOS paste banner',
+      );
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
+  testWidgets('Paste is offered where the field would have had it', (
+    tester,
+  ) async {
+    setClipboardText(null);
+    clipboard.image = image;
+
+    final pasted = <ClipboardImage>[];
+    final controller = await pumpComposer(tester, pasted: pasted);
+    controller.text = 'Hello';
+    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 5);
+    await tester.pump();
+
+    tester.state<EditableTextState>(find.byType(EditableText)).showToolbar();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(Text).evaluate().map((e) => (e.widget as Text).data).toList(),
+      containsAllInOrder(['Cut', 'Copy', 'Paste']),
+      reason: 'a Paste tacked on at the end is hidden behind the overflow',
+    );
+  });
+
   testWidgets('the toolbar keeps the buttons the field already had', (
     tester,
   ) async {
