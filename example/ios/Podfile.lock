@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - native_clipboard (0.1.0):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - native_clipboard (from `.symlinks/plugins/native_clipboard/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  native_clipboard:
+    :path: ".symlinks/plugins/native_clipboard/ios"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  native_clipboard: 09456371e077f7e03a4a01d95d64fb8987919992
+
+PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+
+COCOAPODS: 1.17.0

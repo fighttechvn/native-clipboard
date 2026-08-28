@@ -1,0 +1,35 @@
+name: native_clipboard
+description: "Read images off the system clipboard, and paste them into a text field — the part of copy and paste Flutter leaves out."
+version: 0.1.0
+homepage: https://github.com/fighttechvn/native-clipboard
+repository: https://github.com/fighttechvn/native-clipboard
+issue_tracker: https://github.com/fighttechvn/native-clipboard/issues
+
+topics:
+  - clipboard
+  - paste
+  - images
+  - text-field
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.13.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.fighttech.native_clipboard
+        pluginClass: NativeClipboardPlugin
+      ios:
+        pluginClass: NativeClipboardPlugin

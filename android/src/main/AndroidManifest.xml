@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!--
+          A clip carries a URI, not bytes, so an image copied out of the app
+          has to be readable by whoever pastes it. It is written to this app's
+          cache and shared through this provider; the authority is namespaced
+          per app so two apps using the plugin never collide.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.native_clipboard.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/native_clipboard_paths" />
+        </provider>
+    </application>
+</manifest>
